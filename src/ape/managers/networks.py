@@ -32,7 +32,7 @@ class NetworkManager:
     _ecosystems_by_project: Dict[str, Dict[str, EcosystemAPI]] = {}
 
     def __repr__(self):
-        return f"<NetworkManager, active_provider={self.active_provider}>"
+        return f"<{self.__class__.__name__} active_provider={self.active_provider}>"
 
     @property
     def active_provider(self) -> Optional[ProviderAPI]:
@@ -85,7 +85,9 @@ class NetworkManager:
                     if default_provider in network.providers:
                         network.set_default_provider(default_provider)
                     else:
-                        raise ConfigError(f"No provider named '{default_provider}'.")
+                        raise ConfigError(
+                            f"No provider '{default_provider}' in '{network_name}' network."
+                        )
 
             ecosystem_dict[plugin_name] = ecosystem
 
@@ -147,7 +149,7 @@ class NetworkManager:
         e.g. ``--network [ECOSYSTEM:NETWORK:PROVIDER]``.
 
         Each value is in the form ``ecosystem:network:provider`` and shortened options also
-        appear in the list. For example, ``::geth`` would default to ``:ethereum:development:geth``
+        appear in the list. For example, ``::geth`` would default to ``:ethereum:local:geth``
         and both will be in the returned list. The values come from each
         :class:`~ape.api.providers.ProviderAPI` that is installed.
 
@@ -222,7 +224,7 @@ class NetworkManager:
             # Either split didn't work (in which case it matches the start)
             # or there was nothing after the ``:`` (e.g. "ethereum:")
             ecosystem = self.__getattr__(selections[0] or self.default_ecosystem.name)
-            # By default, the "development" network should be specified for
+            # By default, the "local" network should be specified for
             # any ecosystem (this should not correspond to a production chain)
             default_network = ecosystem.default_network
             return ecosystem[default_network].get_provider(provider_settings=provider_settings)
@@ -259,6 +261,10 @@ class NetworkManager:
         :py:attr:`~ape.managers.networks.NetworkManager.network_choices` for all
         available choices (or use CLI command ``ape networks list``).
 
+        Raises:
+            :class:`~ape.exceptions.NetworkError`: When the given network choice does not
+              match any known network.
+
         Args:
             network_choice (str, optional): The network choice
               (see :py:attr:`~ape.managers.networks.NetworkManager.network_choices`).
@@ -287,7 +293,7 @@ class NetworkManager:
             return self.ecosystems[self._default]
 
         # If explicit default is not set, use first registered ecosystem
-        elif len(self.ecosystems) == 1:
+        elif len(self.ecosystems) > 0:
             return self.ecosystems[list(self.__iter__())[0]]
 
         else:

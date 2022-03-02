@@ -74,7 +74,7 @@ $ ape test -k test_only_one_thing --coverage --gas
 $ ape console --network ethereum:mainnet:infura
 
 # Add new plugins to ape
-$ ape plugins add plugin-name
+$ ape plugins install plugin-name
 ```
 
 Ape also works as a package. You can use the same networks, accounts, and projects from the ape package as you can in the cli:
@@ -88,6 +88,7 @@ with networks.ethereum.mainnet.use_provider("infura"):
 # Work with test accounts, local accounts, and (WIP) popular hardware wallets
 from ape import accounts
 a = accounts[0]  # Load by index
+a = accounts.test_accounts[0] # Load test account by index
 a = accounts["example.eth"]  # or load by ENS/address
 a = accounts.load("alias") # or load by alias
 

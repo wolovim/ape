@@ -53,3 +53,19 @@
     :members:
     :show-inheritance:
 ```
+
+## Project
+
+```{eval-rst}
+.. automodule:: ape.plugins.project
+    :members:
+    :show-inheritance:
+```
+
+## Query
+
+```{eval-rst}
+.. automodule:: ape.plugins.query
+    :members:
+    :show-inheritance:
+```

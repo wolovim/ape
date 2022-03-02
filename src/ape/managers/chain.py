@@ -1,11 +1,15 @@
 import time
-from typing import Callable, ClassVar, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Callable, ClassVar, Dict, Iterator, List, Optional, Tuple, Union, cast
+
+import pandas as pd
 
 from ape.api import AddressAPI, BlockAPI, ProviderAPI, ReceiptAPI
+from ape.api.query import BlockQuery, QueryAPI
 from ape.exceptions import ChainError, ProviderNotConnectedError, UnknownSnapshotError
 from ape.logging import logger
 from ape.managers.converters import ConversionManager
 from ape.managers.networks import NetworkManager
+from ape.managers.query import QueryManager
 from ape.types import AddressType, BlockID, SnapshotID
 from ape.utils import cached_property, injected_before_use
 
@@ -13,6 +17,7 @@ from ape.utils import cached_property, injected_before_use
 class _ConnectedChain:
     _networks: ClassVar[NetworkManager] = injected_before_use()  # type: ignore
     _converters: ClassVar[ConversionManager] = injected_before_use()  # type: ignore
+    _query_manager: ClassVar[QueryManager] = cast(QueryManager, injected_before_use())
 
     @property
     def provider(self) -> ProviderAPI:
@@ -90,24 +95,91 @@ class BlockContainer(_ConnectedChain):
             Iterator[:class:`~ape.api.providers.BlockAPI`]
         """
 
-        return self.range()
+        return self.range(len(self))
 
-    def range(self, start: int = 0, stop: Optional[int] = None) -> Iterator[BlockAPI]:
+    def query(
+        self,
+        columns: Union[str, List[str]],
+        start_block: int = 0,
+        stop_block: Optional[int] = None,
+        engine_to_use: Optional[QueryAPI] = None,
+    ) -> pd.DataFrame:
+        """
+        A method for querying blocks and returning a pandas DataFrame. If you
+        do not provide a starting block, the 0 block is assumed. If you do not
+        provide a stopping block, the last block is assumed. You can pass
+        ``engine_to_use`` to short-circuit engine selection.
+
+        Raises:
+            :class:`~ape.exceptions.ChainError`: When ``stop_block`` is greater
+              than the chain length.
+
+        Args:
+            columns (Union[str, List[str]]): columns in the DataFrame to return
+            start_block (int): The first block, by number, to include in the
+              query. Defaults to 0.
+            stop_block (Optional[int]): The last block, by number, to include
+              in the query. Defaults to the latest block.
+            engine_to_use (Optional[QueryAPI]): query engine to use, bypasses query
+              engine selection algorithm.
+
+        Returns:
+            pandas.DataFrame
+        """
+
+        if stop_block is None:
+            stop_block = self.height
+
+        elif stop_block > self.height:
+            raise ChainError(
+                f"'stop_block={stop_block}' cannot be greater than the chain length ({len(self)}). "
+                f"Use '{self.poll_blocks.__name__}()' to wait for future blocks."
+            )
+
+        query = BlockQuery(
+            columns=columns,
+            start_block=start_block,
+            stop_block=stop_block,
+            engine_to_use=engine_to_use,
+        )
+
+        return self._query_manager.query(query)
+
+    def range(
+        self, start_or_stop: int, stop: Optional[int] = None, step: int = 1
+    ) -> Iterator[BlockAPI]:
         """
         Iterate over blocks. Works similarly to python ``range()``.
 
+        Raises:
+            :class:`~ape.exceptions.ChainError`: When ``stop`` is greater
+                than the chain length.
+            :class:`~ape.exceptions.ChainError`: When ``stop`` is less
+                than ``start_block``.
+            :class:`~ape.exceptions.ChainError`: When ``stop`` is less
+                than 0.
+            :class:`~ape.exceptions.ChainError`: When ``start`` is less
+                than 0.
+
         Args:
-            start (int): The first block, by number, to include in the range.
-              Defaults to 0.
+            start_or_stop (int): When given just a single value, it is the stop.
+              Otherwise, it is the start. This mimics the behavior of ``range``
+              built-in Python function.
             stop (Optional[int]): The block number to stop before. Also the total
-             number of blocks to get.
+              number of blocks to get. If not setting a start value, is set by
+              the first argument.
+            step (Optional[int]): The value to increment by. Defaults to ``1``.
+             number of blocks to get. Defaults to the latest block.
 
         Returns:
             Iterator[:class:`~ape.api.providers.BlockAPI`]
         """
 
         if stop is None:
-            stop = len(self)
+            stop = start_or_stop
+            start = 0
+        else:
+            start = start_or_stop
 
         if stop > len(self):
             raise ChainError(
@@ -118,10 +190,10 @@ class BlockContainer(_ConnectedChain):
             raise ValueError(f"stop '{stop}' cannot be less than start '{start}'.")
         elif stop < 0:
             raise ValueError(f"start '{start}' cannot be negative.")
-        elif start < 0:
+        elif start_or_stop < 0:
             raise ValueError(f"stop '{stop}' cannot be negative.")
 
-        for i in range(start, stop):
+        for i in range(start, stop, step):
             yield self._get_block(i)
 
     def poll_blocks(
@@ -378,14 +450,13 @@ class ChainManager(_ConnectedChain):
 
     def __repr__(self) -> str:
         props = f"id={self.chain_id}" if self._networks.active_provider else "disconnected"
-        return f"<ChainManager ({props})>"
+        return f"<{self.__class__.__name__} ({props})>"
 
     def snapshot(self) -> SnapshotID:
         """
         Record the current state of the blockchain with intent to later
         call the method :meth:`~ape.managers.chain.ChainManager.revert`
-        to go back to this point. This method is for development networks
-        only.
+        to go back to this point. This method is for local networks only.
 
         Raises:
             NotImplementedError: When the active provider does not support

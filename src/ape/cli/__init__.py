@@ -13,9 +13,10 @@ from ape.cli.choices import (
 )
 from ape.cli.commands import NetworkBoundCommand
 from ape.cli.options import (
-    account_option_that_prompts_when_not_given,
+    account_option,
     ape_cli_context,
     contract_option,
+    incompatible_with,
     network_option,
     output_format_option,
     skip_confirmation_option,
@@ -25,7 +26,7 @@ from ape.cli.utils import Abort
 
 __all__ = [
     "Abort",
-    "account_option_that_prompts_when_not_given",
+    "account_option",
     "AccountAliasPromptChoice",
     "Alias",
     "AllFilePaths",
@@ -34,6 +35,7 @@ __all__ = [
     "contract_option",
     "existing_alias_argument",
     "get_user_selected_account",
+    "incompatible_with",
     "network_option",
     "NetworkBoundCommand",
     "non_existing_alias_argument",

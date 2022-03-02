@@ -62,10 +62,28 @@
     :exclude-members: __repr__, __weakref__, __metaclass__
 ```
 
+## Projects
+
+```{eval-rst}
+.. automodule:: ape.api.projects
+    :members:
+    :show-inheritance:
+```
+
 ## Providers
 
 ```{eval-rst}
 .. automodule:: ape.api.providers
     :members:
     :show-inheritance:
+```
+
+## Query
+
+```{eval-rst}
+.. automodule:: ape.api.query
+    :members:
+    :show-inheritance:
+    :special-members:
+    :exclude-members: __repr__, __weakref__, __metaclass__
 ```

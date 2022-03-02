@@ -5,6 +5,7 @@ from .config import ConfigDict, ConfigEnum, ConfigItem
 from .convert import ConverterAPI
 from .explorers import ExplorerAPI
 from .networks import EcosystemAPI, NetworkAPI, ProviderContextManager, create_network_type
+from .projects import DependencyAPI, ProjectAPI
 from .providers import (
     BlockAPI,
     BlockConsensusAPI,
@@ -18,6 +19,7 @@ from .providers import (
     UpstreamProvider,
     Web3Provider,
 )
+from .query import QueryAPI, QueryType
 
 __all__ = [
     "AccountAPI",
@@ -33,10 +35,14 @@ __all__ = [
     "ConfigItem",
     "ConverterAPI",
     "create_network_type",
+    "DependencyAPI",
     "EcosystemAPI",
     "ExplorerAPI",
+    "ProjectAPI",
     "ProviderAPI",
     "ProviderContextManager",
+    "QueryType",
+    "QueryAPI",
     "NetworkAPI",
     "ReceiptAPI",
     "TestAccountAPI",

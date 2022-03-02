@@ -10,7 +10,11 @@ from ape.exceptions import AccountsError
 
 
 def _get_account_by_type(account_type: Optional[Type[AccountAPI]] = None) -> List[AccountAPI]:
-    return list(accounts) if not account_type else accounts.get_accounts_by_type(account_type)
+    account_list = (
+        list(accounts) if not account_type else accounts.get_accounts_by_type(account_type)
+    )
+    account_list.sort(key=lambda a: a.alias or "")
+    return account_list
 
 
 class Alias(click.Choice):
@@ -85,7 +89,7 @@ def get_user_selected_account(
     Prompt the user to pick from their accounts and return that account.
     Use this method if you want to prompt users to select accounts _outside_
     of CLI options. For CLI options, use
-    :meth:`~ape.cli.options.account_option_that_prompts_when_not_given`.
+    :meth:`~ape.cli.options.account_option`.
 
     Args:
         account_type (type[:class:`~ape.api.accounts.AccountAPI`], optional):
@@ -96,7 +100,7 @@ def get_user_selected_account(
         :class:`~ape.api.accounts.AccountAPI`
     """
 
-    if account_type and (type(account_type) != type or not issubclass(account_type, AccountAPI)):
+    if account_type and not issubclass(account_type, AccountAPI):
         raise AccountsError(f"Cannot return accounts with type '{account_type}'.")
 
     prompt = AccountAliasPromptChoice(account_type=account_type, prompt_message=prompt_message)

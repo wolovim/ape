@@ -2,7 +2,7 @@ from functools import partial
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterator, List, Optional, Type
 
-from ethpm_types import ABI
+from ethpm_types.abi import ConstructorABI, EventABI, MethodABI
 from pluggy import PluginManager  # type: ignore
 
 from ape.exceptions import NetworkError, NetworkNotFoundError
@@ -18,6 +18,9 @@ if TYPE_CHECKING:
 
     from .explorers import ExplorerAPI
     from .providers import BlockAPI, ProviderAPI, ReceiptAPI, TransactionAPI, TransactionType
+
+
+LOCAL_NETWORK_NAME = "local"
 
 
 @abstractdataclass
@@ -55,7 +58,7 @@ class EcosystemAPI:
     block_class: Type["BlockAPI"]
     """The block class for this ecosystem."""
 
-    _default_network: str = "development"
+    _default_network: str = LOCAL_NETWORK_NAME
 
     @cached_property
     def config(self) -> ConfigItem:
@@ -199,18 +202,18 @@ class EcosystemAPI:
 
     @abstractmethod
     def encode_deployment(
-        self, deployment_bytecode: bytes, abi: Optional[ABI], *args, **kwargs
+        self, deployment_bytecode: bytes, abi: ConstructorABI, *args, **kwargs
     ) -> "TransactionAPI":
         ...
 
     @abstractmethod
     def encode_transaction(
-        self, address: AddressType, abi: ABI, *args, **kwargs
+        self, address: AddressType, abi: MethodABI, *args, **kwargs
     ) -> "TransactionAPI":
         ...
 
     @abstractmethod
-    def decode_event(self, abi: ABI, receipt: "ReceiptAPI") -> "ContractLog":
+    def decode_event(self, abi: EventABI, receipt: "ReceiptAPI") -> "ContractLog":
         ...
 
     @abstractmethod
@@ -447,17 +450,20 @@ class NetworkAPI:
             Dict[str, partial[:class:`~ape.api.providers.ProviderAPI`]]
         """
 
+        from ape.plugins import clean_plugin_name
+
         providers = {}
 
         for plugin_name, plugin_tuple in self.plugin_manager.providers:
             ecosystem_name, network_name, provider_class = plugin_tuple
+            provider_name = clean_plugin_name(provider_class.__module__.split(".")[0])
 
             if self.ecosystem.name == ecosystem_name and self.name == network_name:
-                # NOTE: Lazily load and provider config on load
-                providers[plugin_name] = partial(
+                # NOTE: Lazily load provider config
+                providers[provider_name] = partial(
                     provider_class,
-                    name=plugin_name,
-                    config=self.config_manager.get_config(plugin_name),
+                    name=provider_name,
+                    config=self.config_manager.get_config(provider_name),
                     network=self,
                     # NOTE: No need to have separate folder, caching should be interoperable
                     data_folder=self.data_folder,
@@ -477,7 +483,7 @@ class NetworkAPI:
         Args:
             provider_name (str, optional): The name of the provider to get. Defaults to ``None``.
               When ``None``, returns the default provider.
-            provider_settings dict, optional): Settings to apply to the provider. Defaults to
+            provider_settings (dict, optional): Settings to apply to the provider. Defaults to
               ``None``.
 
         Returns:

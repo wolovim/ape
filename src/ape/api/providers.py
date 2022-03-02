@@ -217,7 +217,7 @@ class ReceiptAPI:
     receiver: str
     nonce: int
 
-    def __str__(self) -> str:
+    def __repr__(self) -> str:
         return f"<{self.__class__.__name__} {self.txn_hash}>"
 
     def raise_for_status(self):
@@ -631,6 +631,9 @@ class ProviderAPI:
             NotImplementedError: Unless overridden.
         """
 
+    def __repr__(self):
+        return f"<{self.__class__.__name__} {self.name}>"
+
     def _try_track_receipt(self, receipt: ReceiptAPI):
         if self._chain:
             self._chain.account_history.append(receipt)
@@ -646,8 +649,7 @@ class TestProviderAPI(ProviderAPI):
         """
         Record the current state of the blockchain with intent to later
         call the method :meth:`~ape.managers.chain.ChainManager.revert`
-        to go back to this point. This method is for development networks
-        only.
+        to go back to this point. This method is for local networks only.
 
         Returns:
             :class:`~ape.types.SnapshotID`: The snapshot ID.

@@ -117,6 +117,7 @@ def network_option(default: str = None):
           use as the default. Defaults to how ``ape`` normally
           selects a default network.
     """
+
     default = default or networks.default_ecosystem.name
     return click.option(
         "--network",
@@ -153,9 +154,9 @@ def _account_callback(ctx, param, value):
     return value
 
 
-def account_option_that_prompts_when_not_given():
+def account_option():
     """
-    Accepts either the account alias or the account number.
+    A CLI option that accepts either the account alias or the account number.
     If not given anything, it will prompt the user to select an account.
     """
 
@@ -216,3 +217,42 @@ def output_format_option(default: OutputFormat = OutputFormat.TREE):
         default=default.value,
         callback=lambda ctx, param, value: OutputFormat(value.upper()),
     )
+
+
+def incompatible_with(incompatible_opts):
+    """
+    Factory for creating custom ``click.Option`` subclasses that
+    enforce incompatibility with the option strings passed to this function.
+
+    Usage example::
+
+        import click
+
+        @click.command()
+        @click.option("--option", cls=incompatible_with(["other_option"]))
+        def cmd(option, other_option):
+            ....
+    """
+
+    if isinstance(incompatible_opts, str):
+        incompatible_opts = [incompatible_opts]
+
+    class IncompatibleOption(click.Option):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+
+        def handle_parse_result(self, ctx, opts, args):
+            # if None it means we're in autocomplete mode and don't want to validate
+            if ctx.obj is not None:
+                found_incompatible = ", ".join(
+                    [f"--{opt.replace('_', '-')}" for opt in opts if opt in incompatible_opts]
+                )
+                if self.name in opts and found_incompatible:
+                    name = self.name.replace("_", "-")
+                    raise click.BadOptionUsage(
+                        option_name=self.name,
+                        message=f"'--{name}' can't be used with '{found_incompatible}'.",
+                    )
+            return super().handle_parse_result(ctx, opts, args)
+
+    return IncompatibleOption

@@ -26,6 +26,7 @@ extras_require = {
         "flake8-breakpoint>=1.1.0,<2.0.0",  # detect breakpoints left in code
         "flake8-print>=4.0.0,<5.0.0",  # detect print statements left in code
         "isort>=5.9.3,<6.0",  # Import sorting linter
+        "pandas-stubs>=1.2.0,<2.0",  # NOTE: Needed due to mypy types
     ],
     "doc": [
         "myst-parser==0.16.0",  # Tools for parsing markdown files in the docs
@@ -76,10 +77,15 @@ setup(
         "backports.cached_property ; python_version<'3.8'",
         "click>=8.0.0",
         "dataclassy==0.10.4",  # NOTE: Pinned due to issue with `Type[<nothing>]`
-        "eth-account==0.5.6",
-        "ethpm-types>=0.1.0b2",
+        "eth-account==0.5.7",
+        "ethpm-types>=0.1.0b7",
+        "hexbytes>=0.2.2,<1.0.0",
+        "packaging>=20.9,<21.0",
+        "pandas>=1.3.0,<2.0",
         "pluggy>=0.13.1,<1.0",
+        "pydantic>=1.9.0,<2.0",
         "PyGithub>=1.54,<2.0",
+        "pygit2>=1.7.2,<2.0",
         "pyyaml>=0.2.5",
         "py-geth>=3.6.0",
         "requests>=2.25.1,<3.0",
@@ -90,7 +96,7 @@ setup(
         "rich>=10.14,<11",
         "tqdm>=4.62.3,<5.0",
         "typing-extensions ; python_version<'3.8'",
-        "web3[tester]==5.26.0",
+        "web3[tester]==5.27.0",
         "eth_abi==2.1.1",
         "eth-utils==1.10.0",
         "eth-rlp==0.2.1",
@@ -98,7 +104,7 @@ setup(
     ],
     entry_points={
         "console_scripts": ["ape=ape._cli:cli"],
-        "pytest11": ["ape_test=ape_test.plugin"],
+        "pytest11": ["ape_test=ape.pytest.plugin"],
         "ape_cli_subcommands": [
             "ape_accounts=ape_accounts._cli:cli",
             "ape_compile=ape_compile._cli:cli",
