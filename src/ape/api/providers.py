@@ -566,6 +566,9 @@ class Web3Provider(ProviderAPI, ABC):
                 **receipt_data,
             }
         )
+        # NOTE: Injected for more advanced features like tracing
+        receipt.txn = txn  # type: ignore
+
         return receipt.await_confirmations()
 
     def get_contract_logs(
@@ -704,6 +707,8 @@ class Web3Provider(ProviderAPI, ABC):
         )
 
         receipt = self.get_transaction(txn_hash.hex(), required_confirmations=req_confs)
+        receipt.txn = txn  # NOTE: Injected for more advanced features like tracing
+
         logger.info(f"Confirmed {receipt.txn_hash} (gas_used={receipt.gas_used})")
         self._try_track_receipt(receipt)
         return receipt

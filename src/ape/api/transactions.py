@@ -2,7 +2,10 @@ import time
 from typing import TYPE_CHECKING, Iterator, List, Optional, Union
 
 from ethpm_types.abi import EventABI
+from evm_trace import CallTreeNode, CallType, get_calltree_from_trace
 from pydantic.fields import Field
+from rich import print as rich_print
+from rich.tree import Tree
 from tqdm import tqdm  # type: ignore
 
 from ape.api.explorers import ExplorerAPI
@@ -135,6 +138,7 @@ class ReceiptAPI(BaseInterfaceModel):
     a :class:`ape.contracts.base.ContractInstance`.
     """
 
+    txn: Optional[TransactionAPI] = None
     txn_hash: str
     status: int
     block_number: int
@@ -243,3 +247,50 @@ class ReceiptAPI(BaseInterfaceModel):
                 time.sleep(time_to_sleep)
 
         return self
+
+    # TODO: Cache this
+    def _calltree(self, show_internal: bool = False) -> CallTreeNode:
+
+        if not self.txn:
+            raise NotImplementedError()
+
+        trace = self.provider.get_transaction_trace(txn_hash=self.txn_hash)
+
+        calldata = getattr(self.txn, "data", None) or getattr(self.txn, "input", None)
+
+        root_node_kwargs = {
+            "gas_cost": self.gas_used,
+            "gas_limit": self.gas_limit,
+            "address": self.receiver,
+            "calldata": calldata,
+            "value": self.txn.value,
+            # TODO: determine call type
+            "call_type": CallType.MUTABLE,
+        }
+        return get_calltree_from_trace(
+            **root_node_kwargs,
+            show_internal=show_internal,
+            trace=trace,
+        )
+
+    def _create_tree(self, call) -> Tree:
+
+        if isinstance(call, dict):
+            call_dict = call
+        else:
+            call_dict = call.dict()
+
+        calls = call_dict.pop("calls", [])
+        tree = Tree(repr(call_dict))
+
+        if len(calls) > 0:
+            for call in calls:
+                tree.add(self._create_tree(call))
+
+        return tree
+
+    def show_trace(self, show_internal: bool = False):
+        """ """
+        calltree = self._calltree(show_internal=show_internal)
+        tree = self._create_tree(calltree)
+        rich_print(tree)

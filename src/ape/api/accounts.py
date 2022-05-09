@@ -102,7 +102,10 @@ class AccountAPI(BaseInterfaceModel, BaseAddress):
         if not txn.signature:
             raise SignatureError("The transaction was not signed.")
 
-        return self.provider.send_transaction(txn)
+        receipt = self.provider.send_transaction(txn)
+        receipt.txn = txn  # NOTE: Injected for more advanced features like tracing
+
+        return receipt
 
     @cached_property
     def _convert(self) -> Callable:

@@ -88,6 +88,8 @@ class LocalProvider(TestProviderAPI, Web3Provider):
         receipt = self.get_transaction(
             txn_hash.hex(), required_confirmations=txn.required_confirmations or 0
         )
+        receipt.txn = txn  # NOTE: Injected for more advanced features like tracing
+
         if txn.gas_limit is not None and receipt.ran_out_of_gas:
             raise OutOfGasError()
 
